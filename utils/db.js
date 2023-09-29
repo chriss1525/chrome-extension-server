@@ -6,7 +6,4 @@ const supabase = createClient(
   process.env.SUPABASE_KEY
 );
 
-// supabase storage
-const storage = supabase.storage;
-
-module.exports = { supabase, storage };
+module.exports = supabase;

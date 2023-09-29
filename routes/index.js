@@ -1,61 +1,49 @@
 const express = require('express');
 const multer = require('multer');
-const storage = multer.memoryStorage();
-const upload = multer({ storage: storage });
-const supabase = require('../utils/db'); // Import the existing supabase client
+const path = require('path');
+const supabase = require('../utils/db'); 
 
 const router = express.Router();
 
+// Create a directory for storing uploaded videos
+const uploadDirectory = path.join(__dirname, '..', 'utils');
 
-// Function to sanitize filenames
-function sanitizeFilename(filename) {
-  // Replace invalid characters with underscores (you can modify this as needed)
-  return filename.replace(/[^a-zA-Z0-9_.-]/g, '_');
-}
+// Create a multer storage configuration
+const storage = multer.diskStorage({
+  destination: (req, file, cb) => {
+    cb(null, uploadDirectory);
+  },
+  filename: (req, file, cb) => {
+    // unique file name
+    const uniqueFileName = `${Date.now()}-${file.originalname}`;
+    cb(null, uniqueFileName);
+  },
+});
 
-// Uploads a video to Supabase Storage
+// Create a multer instance
+const upload = multer({ storage });
+
+// Define an endpoint to handle video uploads
 router.post('/', upload.single('video'), async (req, res) => {
   try {
-    // Ensure a file was uploaded
+    // Ensure that a file was uploaded
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    // Get the uploaded video file
-    const videoData = req.file.buffer;
+    // Get the uploaded video file path
+    const videoFilePath = req.file.path;
 
-    // sanitize the filename
-    const filename = sanitizeFilename(req.file.originalname);
-
-    // Upload the video to Supabase Storage
-    const { data: storageData, error: storageError } = await supabase.storage
-  .from('chrome-extension')
-  .upload(`videos/${Date.now()}-${filename}`, videoData, {
-    metadata: {
-      contentType: 'video/mp4'
-    }
-  });
-
-    if (storageError) {
-      console.error('Error uploading video to Supabase Storage:', storageError);
-      return res.status(500).json({ error: 'Failed to upload video' });
-    }
-
-    // Get the URL of the uploaded video
-    const videoUrl = storageData[0].url;
-
-    // Store the URL in Supabase database
+    // Store the URL in your Supabase database
     const { data, error } = await supabase
-      .from('videos')
-      .insert([{ url: videoUrl }]);
+      .from('Videos').insert([{ url: videoFilePath }]);
 
     if (error) {
       console.error('Error storing video URL in Supabase:', error.message);
       return res.status(500).json({ error: 'Failed to store video URL' });
     }
 
-    // Respond with the video URL
-    res.status(200).json({ success: true, url: videoUrl });
+    res.status(200).json({ success: true, message: 'Video uploaded and URL stored' });
   } catch (err) {
     console.error('Error uploading video:', err.message);
     res.status(500).json({ error: 'Failed to upload video' });
@@ -65,7 +53,7 @@ router.post('/', upload.single('video'), async (req, res) => {
 // Get all videos urls from supabase
 router.get('/', async (req, res) => {
   try {
-    const { data, error } = await supabase.from('videos').select('url');
+    const { data, error } = await supabase.from('Videos').select('url');
 
     if (error) {
       console.error('Error getting videos from Supabase:', error.message);
@@ -83,7 +71,7 @@ router.get('/', async (req, res) => {
 router.get('/:id', async (req, res) => {
   try {
     const { data, error } = await supabase
-      .from('videos')
+      .from('Videos')
       .select('url')
       .eq('id', req.params.id)
       .single();
