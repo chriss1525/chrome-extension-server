@@ -2,21 +2,20 @@ const express = require('express');
 const multer = require('multer');
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
-const admin = require('firebase-admin');
-const { createClient } = require('@supabase/supabase-js');
+const supabase = require('../utils/db'); // Import the existing supabase client
 
 const router = express.Router();
 
 
-// Uploads a video to the firebase
+// Function to sanitize filenames
+function sanitizeFilename(filename) {
+  // Replace invalid characters with underscores (you can modify this as needed)
+  return filename.replace(/[^a-zA-Z0-9_.-]/g, '_');
+}
+
+// Uploads a video to Supabase Storage
 router.post('/', upload.single('video'), async (req, res) => {
   try {
-
-    if (!admin.apps.length) {
-      console.error('Firebase is not initialized. Make sure to call admin.initializeApp()');
-      return res.status(500).json({ error: 'Firebase is not initialized' });
-    }
-    
     // Ensure a file was uploaded
     if (!req.file) {
       return res.status(400).json({ error: 'No file uploaded' });
@@ -25,39 +24,27 @@ router.post('/', upload.single('video'), async (req, res) => {
     // Get the uploaded video file
     const videoData = req.file.buffer;
 
-    // Upload the video to Firebase Storage
-    const bucket = admin.storage().bucket();
-    const fileName = `videos/${Date.now()}-${req.file.originalname}`;
-    const file = bucket.file(fileName);
+    // sanitize the filename
+    const filename = sanitizeFilename(req.file.originalname);
 
-    try {
-    const result = await file.save(videoData, {
-      metadata: {
-        contentType: req.file.mimetype,
-      },
-    });
+    // Upload the video to Supabase Storage
+    const { data: storageData, error: storageError } = await supabase.storage
+  .from('chrome-extension')
+  .upload(`videos/${Date.now()}-${filename}`, videoData, {
+    metadata: {
+      contentType: 'video/mp4'
+    }
+  });
 
-    console.log('Firebase Storage Result:', result);
-
-    if (!Array.isArray(result) || result.length === 0 || result[0].error) {
-      console.error('Error uploading video to Firebase Storage:', result[0].error);
+    if (storageError) {
+      console.error('Error uploading video to Supabase Storage:', storageError);
       return res.status(500).json({ error: 'Failed to upload video' });
     }
 
+    // Get the URL of the uploaded video
+    const videoUrl = storageData[0].url;
 
-    // Get the Firebase Storage URL
-    let videoUrl = '';
-    if (Array.isArray(result) && result.length > 0 && result[0].metadata && result[0].metadata.mediaLink) {
-      videoUrl = result[0].metadata.mediaLink;
-    } else {
-      console.error('Invalid result object:', result);
-      // Handle the error gracefully or return an appropriate response.
-      return res.status(500).json({ error: 'Failed to upload video' });
-    }
-
-
-
-    // Store the URL in Supabase
+    // Store the URL in Supabase database
     const { data, error } = await supabase
       .from('videos')
       .insert([{ url: videoUrl }]);
@@ -73,12 +60,7 @@ router.post('/', upload.single('video'), async (req, res) => {
     console.error('Error uploading video:', err.message);
     res.status(500).json({ error: 'Failed to upload video' });
   }
-} catch (err) {
-  console.error('Error uploading video:', err.message);
-  res.status(500).json({ error: 'Failed to upload video' });
-};
 });
-
 
 // Get all videos urls from supabase
 router.get('/', async (req, res) => {

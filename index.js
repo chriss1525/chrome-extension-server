@@ -4,7 +4,6 @@ const app = express();
 const admin = require('firebase-admin')
 const port = process.env.PORT || 3000;
 
-require('./utils/cloud_storage.js');
 require('./utils/db.js');
 // import routes
 app.use('/extension', require('./routes/index.js'));
