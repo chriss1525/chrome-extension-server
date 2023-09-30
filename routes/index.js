@@ -14,9 +14,7 @@ const storage = multer.diskStorage({
     cb(null, uploadDirectory);
   },
   filename: (req, file, cb) => {
-    // unique file name
-    const uniqueFileName = `${Date.now()}-${file.originalname}`;
-    cb(null, uniqueFileName);
+    cb(null, file.originalname);
   },
 });
 
@@ -32,15 +30,15 @@ router.post('/', upload.single('video'), async (req, res) => {
     }
 
     // Get the uploaded video url
-    const videoUrl = `https://chrome-extension-backend-w4r6.onrender.com/extension/${req.file.filename}.mp4`;
+    // const videoUrl = `${req.protocol}://${req.get('host')}/extension/${req.file.filename}`;
 
     // Store the URL in your Supabase database
     const { data, error } = await supabase
-      .from('Videos').insert([{ url: videoUrl }]);
+      .from('Videos').insert([{ path: req.file.path, name: req.file.originalname }]);
 
     if (error) {
-      console.error('Error storing video URL in Supabase:', error.message);
-      return res.status(500).json({ error: 'Failed to store video URL' });
+      console.error('Error storing video in database:', error.message);
+      return res.status(500).json({ error: 'Failed to store video' });
     }
 
     res.status(200).json({ success: true, message: 'Video uploaded and URL stored' });
@@ -50,17 +48,19 @@ router.post('/', upload.single('video'), async (req, res) => {
   }
 });
 
-// Get all videos urls from supabase
+// Get all videos
 router.get('/', async (req, res) => {
   try {
-    const { data, error } = await supabase.from('Videos').select('url');
+    const { data, error } = await supabase.from('Videos').select('name');
 
     if (error) {
-      console.error('Error getting videos from Supabase:', error.message);
+      console.error('Error getting videos from database:', error.message);
       return res.status(500).json({ error: 'Failed to get videos' });
     }
 
-    res.status(200).json({ success: true, data });
+    const videos = data.map(video => video.name)
+
+    res.status(200).json({ success: true, data: videos });
   } catch (err) {
     console.error('Error getting videos:', err.message);
     res.status(500).json({ error: 'Failed to get videos' });
@@ -68,24 +68,26 @@ router.get('/', async (req, res) => {
 });
 
 // get a specific video from supabase
-router.get('/:id', async (req, res) => {
+const fs = require('fs');
+router.get('/:filename', async (req, res) => {
   try {
-    const { data, error } = await supabase
-      .from('Videos')
-      .select('url')
-      .eq('id', req.params.id)
-      .single();
+    const filePath = path.join(uploadDirectory, req.params.filename);
 
-    if (error) {
-      console.error('Error getting video from Supabase:', error.message);
-      return res.status(500).json({ error: 'Failed to get video' });
+    // Ensure that the file exists
+    if (fs.existsSync(filePath)) {
+      // set the appropriate content type
+      res.setHeader('Content-Type', 'video/mp4');
+
+      // Stream the video to the client
+      const stream = fs.createReadStream(filePath);
+      stream.pipe(res);
+    } else {
+      res.status(404).json({ error: 'File not found' });
     }
-
-    res.status(200).json({ success: true, data });
   } catch (err) {
     console.error('Error getting video:', err.message);
     res.status(500).json({ error: 'Failed to get video' });
   }
 });
-
+ 
 module.exports = router;
