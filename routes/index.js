@@ -31,12 +31,12 @@ router.post('/', upload.single('video'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    // Get the uploaded video file path
-    const videoFilePath = req.file.path;
+    // Get the uploaded video url
+    const videoUrl = `http://https://chrome-extension-backend-w4r6.onrender.com/extension/${req.file.filename}.mp4`;
 
     // Store the URL in your Supabase database
     const { data, error } = await supabase
-      .from('Videos').insert([{ url: videoFilePath }]);
+      .from('Videos').insert([{ url: videoUrl }]);
 
     if (error) {
       console.error('Error storing video URL in Supabase:', error.message);
