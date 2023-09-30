@@ -32,7 +32,7 @@ router.post('/', upload.single('video'), async (req, res) => {
     }
 
     // Get the uploaded video url
-    const videoUrl = `http://https://chrome-extension-backend-w4r6.onrender.com/extension/${req.file.filename}.mp4`;
+    const videoUrl = `https://chrome-extension-backend-w4r6.onrender.com/extension/${req.file.filename}.mp4`;
 
     // Store the URL in your Supabase database
     const { data, error } = await supabase
