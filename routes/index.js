@@ -1,7 +1,8 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const supabase = require('../utils/db'); 
+const supabase = require('../utils/db');
+const transcribeLocalVideo = require('../transcribe/index');
 
 const router = express.Router();
 
@@ -41,7 +42,20 @@ router.post('/', upload.single('video'), async (req, res) => {
       return res.status(500).json({ error: 'Failed to store video' });
     }
 
-    res.status(200).json({ success: true, message: 'Video uploaded and URL stored' });
+    // Trigger transcription after storing the video
+    try {
+      const transcript = await transcribeLocalVideo(req.file.path);
+
+      // You can save the transcript in your database or do other processing as needed
+      // console.log('Transcription:', transcript);
+      const { data, error } = await supabase
+      .from('Videos').update({ transcript: transcript }).eq('name', req.file.originalname);
+
+      res.status(200).json({ success: true, message: 'Video uploaded, stored, and transcribed' });
+    } catch (transcriptionError) {
+      console.error('Error during transcription:', transcriptionError);
+      res.status(500).json({ error: 'Failed to transcribe video' });
+    }
   } catch (err) {
     console.error('Error uploading video:', err.message);
     res.status(500).json({ error: 'Failed to upload video' });
@@ -76,7 +90,7 @@ router.get('/:filename', async (req, res) => {
     // Ensure that the file exists
     if (fs.existsSync(filePath)) {
       // set the appropriate content type
-      res.setHeader('Content-Type', 'video/mp4');
+      res.setHeader('Content-Type', 'video/webm');
 
       // Stream the video to the client
       const stream = fs.createReadStream(filePath);
@@ -87,6 +101,24 @@ router.get('/:filename', async (req, res) => {
   } catch (err) {
     console.error('Error getting video:', err.message);
     res.status(500).json({ error: 'Failed to get video' });
+  }
+});
+
+router.get('/transcript/:filename', async (req, res) => {
+  try {
+    const { data, error } = await supabase.from('Videos').select('transcript').eq('name', req.params.filename);
+
+    if (error) {
+      console.error('Error getting transcript from database:', error.message);
+      return res.status(500).json({ error: 'Failed to get transcript' });
+    }
+
+    const transcript = data[0].transcript;
+
+    res.status(200).json({ success: true, data: transcript });
+  } catch (err) {
+    console.error('Error getting transcript:', err.message);
+    res.status(500).json({ error: 'Failed to get transcript' });
   }
 });
  
