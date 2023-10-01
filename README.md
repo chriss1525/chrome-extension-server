@@ -47,7 +47,7 @@ This API allows users to upload videos, store them in disk and store the filepat
 - Express.js: Web application framework.
 - Multer: Middleware for handling file uploads.
 - Supabase: Database service for storing video metadata and transcriptions.
-- Deepgram: A service or library for video transcription (not provided in this code).
+- Deepgram: A library for video transcription.
 
 ## Configuration
 
