@@ -7,26 +7,26 @@ const dotenv = require('dotenv');
 
 const deepgram = new Deepgram(process.env.DEEPGRAM_API_KEY);
 
-async function ffmpeg(command) {
+async function ffmpeg (command) {
   return new Promise((resolve, reject) => {
     exec(`${ffmpegStatic} ${command}`, (err, stderr, stdout) => {
-      if (err) reject(err)
-      resolve(stdout)
-    })
-  })
+      if (err) reject(err);
+      resolve(stdout);
+    });
+  });
 }
 
-async function transcribeLocalVideo(filePath) {
-  ffmpeg(`-hide_banner -y -i ${filePath} ${filePath}.wav`);
+async function transcribeLocalVideo (filePath) {
+  ffmpeg(`-hide_banner -y -i ${filePath} ${newFilePath}.wav`);
 
   const audioFile = {
-    buffer: fs.readFileSync(`${filePath}.wav`),
-    mimetype: 'audio/wav',
-  }
+    buffer: fs.readFileSync(`${newFilePath}.wav`),
+    mimetype: 'audio/wav'
+  };
   const response = await deepgram.transcription.preRecorded(audioFile, {
-    punctuation: true,
-  })
-  return response.results
+    punctuation: true
+  });
+  return response.results;
 }
 
 module.exports = transcribeLocalVideo;

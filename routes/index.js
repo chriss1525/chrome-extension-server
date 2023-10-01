@@ -90,7 +90,7 @@ router.get('/:filename', async (req, res) => {
     // Ensure that the file exists
     if (fs.existsSync(filePath)) {
       // set the appropriate content type
-      res.setHeader('Content-Type', 'video/webm');
+      res.setHeader('Content-Type', 'video/mp4');
 
       // Stream the video to the client
       const stream = fs.createReadStream(filePath);
