@@ -3,6 +3,7 @@ const multer = require('multer');
 const path = require('path');
 const supabase = require('../utils/db');
 const transcribeLocalVideo = require('../transcribe/index');
+const ffmpegStatic = require('ffmpeg-static');
 
 const router = express.Router();
 
@@ -30,9 +31,6 @@ router.post('/', upload.single('video'), async (req, res) => {
       return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    // Get the uploaded video url
-    // const videoUrl = `${req.protocol}://${req.get('host')}/extension/${req.file.filename}`;
-
     // Store the URL in your Supabase database
     const { data, error } = await supabase
       .from('Videos').insert([{ path: req.file.path, name: req.file.originalname }]);
@@ -46,12 +44,11 @@ router.post('/', upload.single('video'), async (req, res) => {
     try {
       const transcript = await transcribeLocalVideo(req.file.path);
 
-      // You can save the transcript in your database or do other processing as needed
-      // console.log('Transcription:', transcript);
-      const { data, error } = await supabase
-      .from('Videos').update({ transcript: transcript }).eq('name', req.file.originalname);
+        const { data, error } = await supabase
+          .from('Videos').update({ transcript: transcript }).eq('name', req.file.originalname);
 
-      res.status(200).json({ success: true, message: 'Video uploaded, stored, and transcribed' });
+        res.status(200).json({ success: true, message: 'Video uploaded, stored, and transcribed' }
+        );
     } catch (transcriptionError) {
       console.error('Error during transcription:', transcriptionError);
       res.status(500).json({ error: 'Failed to transcribe video' });

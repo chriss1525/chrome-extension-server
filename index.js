@@ -1,7 +1,6 @@
 require('dotenv').config();
 const express = require('express');
 const app = express();
-const admin = require('firebase-admin')
 const port = process.env.PORT || 3000;
 
 require('./utils/db.js');
