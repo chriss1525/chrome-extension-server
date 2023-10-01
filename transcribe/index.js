@@ -7,16 +7,12 @@ const dotenv = require('dotenv');
 
 const deepgram = new Deepgram(process.env.DEEPGRAM_API_KEY);
 
-async function ffmpeg(command) {
-  return new Promise((resolve, reject) => {
-    exec(`${ffmpegStatic} ${command}`, (err, stderr, stdout) => {
-      if (err) reject(err)
-      resolve(stdout)
-    })
-  })
+function ffmpeg(command) {
+    return exec(`${ffmpegStatic} ${command}`)
 }
 
 async function transcribeLocalVideo(filePath) {
+  // Extract audio from video using FFmpeg
   ffmpeg(`-hide_banner -y -i ${filePath} ${filePath}.wav`)
 
   const audioFile = {
