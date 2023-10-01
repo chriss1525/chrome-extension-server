@@ -2,6 +2,10 @@
 
 This API allows users to upload videos, store them in disk and store the filepaths to a database, transcribe the videos, and retrieve video and transcription data.
 
+
+## Deployed Host
+
+**url:** `https://chrome-extension-backend-w4r6.onrender.com`
 ## Endpoints
 
 ### Upload a Video
