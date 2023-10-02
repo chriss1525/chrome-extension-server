@@ -12,7 +12,7 @@ This API allows users to upload videos, store them in disk and store the filepat
 
 - **Endpoint:** `POST /extension/`
 - **Description:** Upload a video file to the server.
-- **Request Body:** A video file with the name "video." and file type "type."
+- **Request Body:** A video file with the file type "File."
 - **Response:** Returns a JSON object with a success message if the upload and transcription are successful, or an error message if any step fails.
 
 ### Get All Videos
